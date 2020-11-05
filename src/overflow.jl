@@ -11,10 +11,6 @@ coordinates that overflow outside of the grid.
 
 [`WrapOverflow`](@ref) returns a tuple with the current position or it's
 wrapped equivalent, and `true` as it is allways in-bounds.
-
-[`WallOverflow`](@ref) returns a tuple with the current position or 
-the closest in-bounds position for coordinates that overflow outside of the grid,
- and `true` as it is allways in-bounds.
 """
 @inline inbounds(xs::Tuple, data::SimData) = 
     inbounds(xs, first(data))
@@ -32,15 +28,6 @@ end
         max + rem(x, max), true
     elseif x > max
         rem(x, max), true
-    else
-        x, true
-    end
-
-@inline inbounds(x::Number, max::Number, overflow::WallOverflow) =
-    if x < oneunit(x)
-        oneunit(x), true
-    elseif x > max
-        max, true
     else
         x, true
     end
@@ -120,44 +107,4 @@ function wrapstatus!(status)
     status[1, :] .= true
     status[:, 1] .|= status[:, end-2] .|= status[:, end-1]
     status .= true
-end
-
-handleoverflow!(griddata::GridData, ::WallOverflow) = begin
-    r = radius(griddata)
-    r < 1 && return griddata
-
-    # TODO optimise this. Its mostly a placeholder so wrapping still works in GOL tests.
-    src = parent(source(griddata))
-    nrows, ncols = gridsize(griddata)
-    rows = 1+r:nrows+r
-    cols = 1+r:ncols+r
-
-    # Left
-    @inbounds copyto!(src, CartesianIndices((rows, 1)),
-                      src, CartesianIndices((rows, 1)))
-    # Right
-    @inbounds copyto!(src, CartesianIndices((rows, ncols)),
-                      src, CartesianIndices((rows, ncols)))
-    # Top
-    @inbounds copyto!(src, CartesianIndices((1, cols)),
-                      src, CartesianIndices((1, cols)))
-    # Bottom
-    @inbounds copyto!(src, CartesianIndices((nrows, cols)),
-                      src, CartesianIndices((nrows, cols)))
-
-    # Copy four corners
-    # Top Left
-    @inbounds copyto!(src, CartesianIndices((1, 1)),
-                      src, CartesianIndices((1, 1)))
-    # Top Right 
-    @inbounds copyto!(src, CartesianIndices((1, ncols)),
-                      src, CartesianIndices((1, ncols)))
-    # Botom Left
-    @inbounds copyto!(src, CartesianIndices((nrows, 1)),
-                      src, CartesianIndices((nrows, 1)))
-    # Botom Right
-    @inbounds copyto!(src, CartesianIndices((nrows, ncols)),
-                      src, CartesianIndices((nrows, ncols)))
-
-    wrapstatus!(sourcestatus(griddata))
 end

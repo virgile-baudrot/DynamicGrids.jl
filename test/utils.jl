@@ -18,16 +18,6 @@ using DynamicGrids: inbounds, isinbounds
         @test inbounds((22,0), (10, 10), WrapOverflow()) == ((2,10),true)
         @test inbounds((-22,0), (10, 10), WrapOverflow()) == ((8,10),true)
     end
-    @testset "inbounds with WallOverflow() returns new index and true for an overflowed index" begin
-        @test inbounds((-2,-8), (10, 10), WallOverflow()) == ((1,1),true) # Corner TopLeft
-        @test inbounds((0,3), (10, 10), WallOverflow()) == ((1,3),true) # Top
-        @test inbounds((-12,12), (10, 10), WallOverflow()) == ((1,10),true) # Corner TopRight
-        @test inbounds((10,24), (10, 10), WallOverflow()) == ((10,10),true) # Right
-        @test inbounds((22,11), (10, 10), WallOverflow()) == ((10,10),true) # Corner BottomRight
-        @test inbounds((22,1), (10, 10), WallOverflow()) == ((10,1),true) # Bottom
-        @test inbounds((11,0), (10, 10), WallOverflow()) == ((10,1),true) # Corner BottomLeft
-        @test inbounds((4,-24), (10, 10), WallOverflow()) == ((4,1),true) # Left
-    end
     @testset "isinbounds" begin
         @test isinbounds((4, 5), (4, 5)) == true
         @test isinbounds((200, 300), (2, 3)) == false

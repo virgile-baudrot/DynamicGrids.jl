@@ -54,7 +54,7 @@ export Neighborhood, AbstractRadialNeighborhood, Moore,
 
 export PerformanceOpt, NoOpt, SparseOpt
 
-export Overflow, RemoveOverflow, WrapOverflow, WallOverflow
+export Overflow, RemoveOverflow, WrapOverflow
 
 export Output, GraphicOutput, ImageOutput, ArrayOutput, REPLOutput, GifOutput
 
