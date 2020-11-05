@@ -3,11 +3,8 @@ module DynamicGrids
 @doc let
     path = joinpath(dirname(@__DIR__), "README.md")
     include_dependency(path)
-    # Use [`XX`](@ref) in the docs but not the readme
-    match = r"`((?>[\w-]+)(?<!AbstractArray|NamedTuple|init|read|write|R|W))`"
-    text = replace(read(path, String), match => s"[`\1`](@ref)")
     # Run examples
-    replace(text, "```julia" => "```@example")
+    replace(read(path, String), "```julia" => "```@example")
 end DynamicGrids
 
 
@@ -41,7 +38,7 @@ import FieldMetadata: @description, description,
                       @default, default
 
 
-export sim!, resume!, replay, savegif, isinferred, isinferred
+export sim!, resume!, savegif, isinferred, isinferred
 
 export rules, neighbors, inbounds, isinbounds, radius, gridsize, 
        currenttime, currenttimestep, timestep

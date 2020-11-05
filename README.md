@@ -2,7 +2,7 @@
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://cesaraustralia.github.io/DynamicGrids.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://cesaraustralia.github.io/DynamicGrids.jl/dev)
-[![Build Status](https://travis-ci.org/cesaraustralia/DynamicGrids.jl.svg?branch=master)](https://travis-ci.org/cesaraustralia/DynamicGrids.jl) 
+[![Build Status](https://travis-ci.com/cesaraustralia/DynamicGrids.jl.svg?branch=master)](https://travis-ci.com/cesaraustralia/DynamicGrids.jl) 
 [![codecov.io](http://codecov.io/github/cesaraustralia/DynamicGrids.jl/coverage.svg?branch=master)](http://codecov.io/github/cesaraustralia/DynamicGrids.jl?branch=master)
 [![Aqua.jl Quality Assurance](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
@@ -42,8 +42,8 @@ how a simulation works: *grids*, *rules*, and *outputs*.
 ## Grids
 
 Simulation grids may be any single `AbstractArray` or a `NamedTuple` of multiple
-`AbstractArray`. Grids are updated by `Rule`s that are run for every cell, at
-every timestep.
+`AbstractArray`. Usually grids contain values of `Number`, but other types are possible.
+Grids are updated by `Rule`s that are run for every cell, at every timestep. 
 
 The `init` grid/s contain whatever initialisation data is required to start
 a simulation: the array type, size and element type, as well as providing the
@@ -85,6 +85,17 @@ model to return output with explicit dimensions. This will plot correctly as a
 map using [Plots.jl](https://github.com/JuliaPlots/Plots.jl), to which shape
 files and observation points can be easily added.
 
+### Non-Number Grids
+
+Grids containing custom and non-`Number` types are possible, with some caveats.
+They must define `Base.zero` for their element type, and should be a bitstype for performance. 
+Tuple does not define `zero`. `Array` is not a bitstype, and does not define `zero`. 
+`SArray` from StaticArrays.jl is both, and can be used as the contents of a grid. 
+Custom structs that defne `zero` should also work. 
+
+However, for any multi-values grid element type, you will need to define a method of 
+`DynamicGrids.rgb` that returns an `ARGB32` for them to work in `ImageOutput`s, and 
+`isless` for the `REPLoutput` to work.
 
 ## Rules
 
