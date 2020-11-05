@@ -20,6 +20,13 @@ Remove coordinates that overflow grid boundaries.
 struct RemoveOverflow <: Overflow end
 
 """
+    WallOverflow()
+
+    Wrap coordinates that overflow boundaries back to the closest cell within the grid.
+"""
+struct WallOverflow <: Overflow end
+
+"""
 Performance optimisations to use in the simulation.
 """
 abstract type PerformanceOpt end
@@ -77,7 +84,7 @@ Rules will be run in the order they are passed, ie. `Ruleset(rule1, rule2, rule3
 - `opt`: a [`PerformanceOpt`](@ref) to specificy optimisations like 
   [`SparseOpt`](@ref). Defaults to [`NoOpt`](@ref).
 - `overflow`: what to do with overflow of grid edges. 
-  Options are `RemoveOverflow()` or `WrapOverflow()`, defaulting to [`RemoveOverflow`](@ref).
+  Options are `RemoveOverflow()`, `WrapOverflow()` or `WallOverflow()`, defaulting to [`RemoveOverflow`](@ref).
 - `cellsize`: size of cells.
 - `timestep`: fixed timestep where this is reuired for some rules. 
   eg. `Month(1)` or `1u"s"`.
