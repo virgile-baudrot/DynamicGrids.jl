@@ -27,9 +27,9 @@ NeighborhoodRule
 Neighbors
 Convolution
 Life
-ManualRule
+SetCellRule
 Manual
-ManualNeighborhoodRule
+SetNeighborhoodRule
 SetNeighbors
 GridRule
 Grid
@@ -87,10 +87,6 @@ DynamicGrids.neighbors
 DynamicGrids.positions
 DynamicGrids.offsets
 DynamicGrids.sumneighbors
-DynamicGrids.mapsetneighbor!
-DynamicGrids.setneighbor!
-DynamicGrids.allocbuffers
-DynamicGrids.hoodsize
 ```
 
 ## Manual Rules
@@ -111,6 +107,7 @@ xor!
 ```@docs
 Output
 ArrayOutput
+ResultOutput
 GraphicOutput
 REPLOutput
 ImageOutput
@@ -168,12 +165,12 @@ DynamicGrids.rgb
 
 ## Ruleset config
 
-### Overflow
+### Boundary conditions
 
 ```@docs
-Overflow
-WrapOverflow
-RemoveOverflow
+Boundary
+Wrap
+Remove
 ```
 
 ### Optimisation

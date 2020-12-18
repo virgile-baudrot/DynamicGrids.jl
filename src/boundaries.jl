@@ -1,15 +1,15 @@
 # See interface docs
 @inline inbounds(xs::Tuple, data::SimData) = inbounds(xs, first(data))
-@inline inbounds(xs::Tuple, data::GridData) = inbounds(xs, gridsize(data), overflow(data))
-@inline function inbounds(xs::Tuple, maxs::Tuple, overflow)
-    a, inbounds_a = inbounds(xs[1], maxs[1], overflow)
-    b, inbounds_b = inbounds(xs[2], maxs[2], overflow)
+@inline inbounds(xs::Tuple, data::GridData) = inbounds(xs, gridsize(data), boundary(data))
+@inline function inbounds(xs::Tuple, maxs::Tuple, boundary)
+    a, inbounds_a = inbounds(xs[1], maxs[1], boundary)
+    b, inbounds_b = inbounds(xs[2], maxs[2], boundary)
     (a, b), inbounds_a & inbounds_b
 end
-@inline function inbounds(x::Number, max::Number, overflow::RemoveOverflow)
+@inline function inbounds(x::Number, max::Number, boundary::Remove)
     x, isinbounds(x, max)
 end
-@inline function inbounds(x::Number, max::Number, overflow::WrapOverflow)
+@inline function inbounds(x::Number, max::Number, boundary::Wrap)
     if x < oneunit(x)
         max + rem(x, max), true
     elseif x > max
@@ -26,12 +26,12 @@ end
 @inline isinbounds(x::Number, max::Number) = x >= one(x) && x <= max
 
 
-#= Wrap overflow where required. This optimisation allows us to ignore
+#= Wrap boundary where required. This optimisation allows us to ignore
 bounds checks on neighborhoods and still use a wraparound grid. =#
-handleoverflow!(grids::Tuple) = map(handleoverflow!, grids)
-handleoverflow!(griddata::GridData) = handleoverflow!(griddata, overflow(griddata))
-handleoverflow!(griddata::GridData, ::RemoveOverflow) = griddata
-function handleoverflow!(griddata::GridData, ::WrapOverflow)
+_handleboundary!(grids::Tuple) = map(_handleboundary!, grids)
+_handleboundary!(griddata::GridData) = _handleboundary!(griddata, boundary(griddata))
+_handleboundary!(griddata::GridData, ::Remove) = griddata
+function _handleboundary!(griddata::GridData, ::Wrap)
     r = radius(griddata)
     r < 1 && return griddata
 
@@ -74,11 +74,11 @@ function handleoverflow!(griddata::GridData, ::WrapOverflow)
     @inbounds copyto!(src, CartesianIndices((endpadrow, endpadcol)),
                       src, CartesianIndices((startrow, startcol)))
 
-    wrapstatus!(sourcestatus(griddata))
+    _wrapstatus!(sourcestatus(griddata))
 end
 
-wrapstatus!(status::Nothing) = nothing
-function wrapstatus!(status::AbstractArray)
+_wrapstatus!(status::Nothing) = nothing
+function _wrapstatus!(status::AbstractArray)
     # This could be further optimised.
     status[end-1, :] .|= status[1, :]
     status[:, end-1] .|= status[:, 1]

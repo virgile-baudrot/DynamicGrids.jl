@@ -1,6 +1,14 @@
 """
     ImageConfig(processor, minval, maxval) 
-    ImageConfig(; processor=ColorProcessor(), minval=nothing, maxval=nothing) 
+    ImageConfig(; 
+        init=nothing, 
+        font=autofont(), 
+        scheme=Greyscale(), 
+        text=TextConfig(; font=font)
+        processor=autoprocessor(init),
+        minval=nothing, 
+        maxval=nothing
+    ) 
 
 Common configuration component for all [`ImageOutput`](@ref).
 
@@ -9,17 +17,25 @@ Common configuration component for all [`ImageOutput`](@ref).
 with Colorshemes.jl. `nothing` values are considered to represent zero or one 
 respectively for `minval` and `maxval`, and will not be normalised.
 """
-struct ImageConfig{P,Min,Max}
+struct ImageConfig{P,Min,Max,IB}
     processor::P
     minval::Min
     maxval::Max
+    imgbuffer::IB
 end
-ImageConfig(; processor=ColorProcessor(), minval=nothing, maxval=nothing, kwargs...) = 
-    ImageConfig(processor, minval, maxval)
+function ImageConfig(; 
+    init=nothing, font=autofont(), text=TextConfig(; font=font), 
+    scheme=Greyscale(), processor=autoprocessor(init, scheme, text), 
+    minval=nothing, maxval=nothing, kwargs...
+) 
+    imgbuffer = _allocimage(processor, init)
+    ImageConfig(processor, minval, maxval, imgbuffer)
+end
 
 processor(ic::ImageConfig) = ic.processor
 minval(ic::ImageConfig) = ic.minval
 maxval(ic::ImageConfig) = ic.maxval
+imgbuffer(ic::ImageConfig) = ic.imgbuffer
 
 """
 Graphic outputs that display the simulation frames as RGB images.
@@ -36,7 +52,7 @@ heavy dependencies on graphics libraries. See
 and [DynamicGridsInteract.jl](https://github.com/cesaraustralia/DynamicGridsInteract.jl)
 for implementations.
 """
-abstract type ImageOutput{T} <: GraphicOutput{T} end
+abstract type ImageOutput{T,F} <: GraphicOutput{T,F} end
 
 """
     (::Type{<:ImageOutput}(o::Output; 
@@ -47,11 +63,17 @@ abstract type ImageOutput{T} <: GraphicOutput{T} end
         kwargs...)
 
 Generic `ImageOutput` constructor that construct an `ImageOutput` from another `Output`.
+
 """
-(::Type{F})(o::T; frames=frames(o), extent=extent(o), graphicconfig=graphicconfig(o),
-    imageconfig=imageconfig(o), kwargs...) where F <: ImageOutput where T <: Output = 
-    F(; frames=frames, running=false, extent=extent, graphicconfig=graphicconfig, 
-      imageconfig=imageconfig, kwargs...)
+function (::Type{F})(o::T; 
+    frames=frames(o), extent=extent(o), graphicconfig=graphicconfig(o),
+    imageconfig=imageconfig(o), kwargs...
+) where F <: ImageOutput where T <: Output 
+    F(; 
+        frames=frames, running=false, extent=extent, graphicconfig=graphicconfig, 
+        imageconfig=imageconfig, kwargs...
+    )
+end
 
 """
     (::Type{<:ImageOutput})(init::Union{NamedTuple,AbstractMatrix}; 
@@ -62,56 +84,59 @@ Generic `ImageOutput` constructor that construct an `ImageOutput` from another `
 
 Generic `ImageOutput` constructor. Converts an init `AbstractArray` 
 to a vector of `AbstractArray`s, uses `kwargs` to constructs required 
-`extent, `graphicconfig` and `imageconfig` objects unless
-they are specifically passed in.
+[`Extent`](@ref), [`GraphicConfig`](@ref) and [`ImageConfig`](@ref) objects unless
+they are specifically passed in using `extent`, `graphicconfig`, `imageconfig`.
 
-Unused or mispelled keyword arguments are ignored.
+All other keyword arguments are passed to these constructors. 
+
+Unused or mis-spelled keyword arguments are ignored.
 """
-(::Type{T})(init::Union{NamedTuple,AbstractMatrix}; 
-            extent=nothing, graphicconfig=nothing, imageconfig=nothing, kwargs...
-           ) where T <: ImageOutput = begin
+function (::Type{T})(init::Union{NamedTuple,AbstractMatrix}; 
+    extent=nothing, graphicconfig=nothing, imageconfig=nothing, kwargs...
+) where T <: ImageOutput
     extent = extent isa Nothing ? Extent(; init=init, kwargs...) : extent
     graphicconfig = graphicconfig isa Nothing ? GraphicConfig(; kwargs...) : extent
-    imageconfig = imageconfig isa Nothing ? ImageConfig(; kwargs...) : imageconfig
-    T(; frames=[deepcopy(init)], running=false, 
-      extent=extent, graphicconfig=graphicconfig, imageconfig=imageconfig, kwargs...)
+    imageconfig = imageconfig isa Nothing ? ImageConfig(; init=init, kwargs...) : imageconfig
+    T(; 
+        frames=[deepcopy(init)], running=false, extent=extent, 
+        graphicconfig=graphicconfig, imageconfig=imageconfig, kwargs...
+    )
 end
 
-imageconfig(o::Output) = ImageConfig()
+imageconfig(o::Output) = ImageConfig(; init=init(o))
 imageconfig(o::ImageOutput) = o.imageconfig
 
 processor(o::Output) = processor(imageconfig(o))
 minval(o::Output) = minval(imageconfig(o))
 maxval(o::Output) = maxval(imageconfig(o))
+imgbuffer(o::Output) = imgbuffer(imageconfig(o))
 
-
-# Allow constructing a frame with the ruleset passed in instead of SimData
-showframe(frame, o::ImageOutput, data::SimData, f, t) =
-    showimage(grid2image(o, data, frame, f, t), o, data, f, t)
+function showframe(o::ImageOutput, data)
+    showimage(grid2image!(o, data), o, data)
+end
 
 """
-    showimage(image::AbstractArray{AGRB32,2}, output::ImageOutput, f, t)
+    showimage(image::AbstractArray{AGRB32,2}, output::ImageOutput)
 
 Show image generated by and `GridProcessor` in an ImageOutput.
 
 # Arguments
 - `image`: An array of `Color`
 - `output`: the output to define the method for
-- `f`: the current frame number
-- `t`: the current frame date/time
 """
 function showimage end
-showimage(image, o, data, f, t) = showimage(image, o, f, t)
-
+showimage(image, o, data) = showimage(image, o)
 
 # Headless image output
-mutable struct NoDisplayImageOutput{T,F<:AbstractVector{T},E,GC,IC} <: ImageOutput{T}
+mutable struct NoDisplayImageOutput{T,F<:AbstractVector{T},E,GC,IC} <: ImageOutput{T,F}
     frames::F
     running::Bool 
     extent::E
     graphicconfig::GC
     imageconfig::IC
 end
-
-NoDisplayImageOutput(; frames, running, extent, graphicconfig, imageconfig, kwargs...) =
+function NoDisplayImageOutput(; 
+    frames, running, extent, graphicconfig, imageconfig, kwargs...
+)
     NoDisplayImageOutput(frames, running, extent, graphicconfig, imageconfig)
+end

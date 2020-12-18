@@ -19,6 +19,7 @@ using Colors,
       OffsetArrays,
       REPL,
       Reexport,
+      Requires,
       Setfield,
       StaticArrays,
       Test,
@@ -27,43 +28,57 @@ using Colors,
 @reexport using ModelParameters
 
 const DG = DynamicGrids
+const DD = DimensionalData
 
 using Base: tail, @propagate_inbounds
 
 import Base: show, getindex, setindex!, lastindex, size, length, push!, append!,
              broadcast, broadcast!, similar, eltype, iterate
 
-export sim!, resume!, savegif, isinferred, isinferred
+export sim!, resume!, savegif, isinferred
 
-export rules, neighbors, offsets, positions, radius, inbounds, isinbounds 
+export rules, neighbors, neighborhood, offsets, positions, radius, inbounds, isinbounds 
 
-export gridsize, currenttime, currenttimestep, timestep
+export gridsize, currentframe, currenttime, currenttimestep, timestep
 
-export add!, sub!, and!, or!, xor!
+export add!, sub!, min!, max!, and!, or!, xor!
 
-export Rule, NeighborhoodRule, CellRule, ManualRule, ManualNeighborhoodRule, GridRule
+export Rule, NeighborhoodRule, CellRule, SetCellRule, SetNeighborhoodRule, SetGridRule
 
-export Cell, Neighbors, SetNeighbors, Convolution, Manual, Chain, Life, Grid 
+export Cell, Neighbors, SetNeighbors, SetCell, Convolution, SetGrid, Life, CopyTo
+
+export Chain 
 
 export AbstractRuleset, Ruleset, StaticRuleset
 
-export Neighborhood, RadialNeighborhood, AbstractKernel, Kernel, Moore,
-       AbstractPositional, Positional, VonNeumann, LayeredPositional
+export Neighborhood, RadialNeighborhood, AbstractWindow, Window, AbstractKernel, Kernel,
+       Moore, AbstractPositional, Positional, VonNeumann, LayeredPositional
+
+export Processor, SingleCPU, ThreadedCPU
 
 export PerformanceOpt, NoOpt, SparseOpt
 
-export Overflow, RemoveOverflow, WrapOverflow
+export Boundary, Remove, Wrap
+
+export Aux, Grid
 
 export Output, GraphicOutput, ImageOutput, ArrayOutput, ResultOutput, REPLOutput, GifOutput
 
 export GridProcessor, SingleGridProcessor, ColorProcessor, SparseOptInspector,
-       MultiGridProcessor, ThreeColorProcessor, LayoutProcessor
+       MultiGridProcessor, LayoutProcessor
 
 export TextConfig
 
 export Greyscale, Grayscale
 
 export CharStyle, Block, Braile
+
+function __init__()
+    global terminal
+    terminal = REPL.Terminals.TTYTerminal(get(ENV, "TERM", Base.Sys.iswindows() ? "" : "dumb"), stdin, stdout, stderr)
+
+    @require KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c" include("cuda.jl")
+end
 
 # Documentation templates
 @template TYPES =
@@ -72,12 +87,15 @@ export CharStyle, Block, Braile
     $(DOCSTRING)
     """
 
+include("neighborhoods.jl")
 include("rules.jl")
+include("flags.jl")
 include("rulesets.jl")
 include("extent.jl")
+include("grid.jl")
 include("simulationdata.jl")
+include("auxilary.jl")
 include("chain.jl")
-include("neighborhoods.jl")
 include("outputs/output.jl")
 include("outputs/graphic.jl")
 include("outputs/image.jl")
@@ -91,7 +109,7 @@ include("framework.jl")
 include("precalc.jl")
 include("sequencerules.jl")
 include("maprules.jl")
-include("overflow.jl")
+include("boundaries.jl")
 include("utils.jl")
 include("life.jl")
 include("show.jl")
